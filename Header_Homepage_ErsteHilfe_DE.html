@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Erste-Hilfe-Bescheinigung – Live-Verifikation</title>
+<style>
+  :root{
+    --navy:#14254E; --navy-deep:#0B1733; --navy-stage:#0F1E40;
+    --gold:#F4C430; --gold-soft:#FFF6D8;
+    --green:#1F9D57; --green-deep:#15803D;
+    --ink:#15203A; --muted:#5B6580; --line:#E7EBF3; --paper:#F5F7FC;
+    --card:#FFFFFF;
+    --cycle:11s;
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:transparent;
+    font-family:"Open Sans","Segoe UI",Arial,sans-serif;
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  #wrap{width:100%; max-width:560px; display:flex; justify-content:center;}
+  /* design coordinate space = 560 x 680, scaled by JS */
+  #frame{width:560px; height:520px; transform-origin:top center; position:relative;}
+
+  .stage{
+    position:absolute; inset:0; overflow:visible;
+    background:transparent;
+    display:flex; flex-direction:column; gap:14px; padding:20px 12px 10px;
+  }
+  /* faint contour atmosphere */
+  .stage::before{ content:none; }
+
+  .live{display:flex; align-items:center; gap:8px; font-size:13px; color:#5B6580; letter-spacing:.02em; z-index:3;}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(31,157,87,.6);animation:pulse 2.4s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(31,157,87,.55)}70%{box-shadow:0 0 0 7px rgba(31,157,87,0)}100%{box-shadow:0 0 0 0 rgba(31,157,87,0)}}
+
+  /* ---------- CARD ---------- */
+  .cardwrap{position:relative; z-index:2;}
+  .card{
+    position:relative; background:var(--card); border-radius:20px; padding:22px 22px 20px;
+    border:3px solid var(--green);
+    box-shadow:0 24px 55px -26px rgba(20,37,78,0.30);
+    color:var(--ink);
+    opacity:0; transform:translateY(14px) scale(.975);
+    animation:cardIn var(--cycle) ease-in-out infinite;
+  }
+  @keyframes cardIn{
+    0%{opacity:0; transform:translateY(14px) scale(.975)}
+    6%{opacity:1; transform:translateY(0) scale(1)}
+    93%{opacity:1; transform:translateY(0) scale(1)}
+    99%,100%{opacity:0; transform:translateY(8px) scale(.985)}
+  }
+  /* gold verification sweep around the card border */
+  @property --sweep{syntax:'<angle>'; inherits:false; initial-value:0deg;}
+  .card .sweep{
+    position:absolute; inset:-3px; border-radius:21px; pointer-events:none; opacity:0;
+    background:conic-gradient(from var(--sweep),
+      transparent 0deg, transparent 296deg, rgba(244,196,48,.0) 300deg,
+      var(--gold) 338deg, var(--gold-soft) 350deg, transparent 360deg);
+    padding:3px;
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite:exclude;
+    filter:drop-shadow(0 0 5px rgba(244,196,48,.6));
+    animation:sweep var(--cycle) linear infinite;
+  }
+  @keyframes sweep{
+    0%,7%{opacity:0; --sweep:0deg}
+    9%{opacity:1}
+    9.0001%{--sweep:0deg}
+    40%{opacity:1; --sweep:360deg}
+    42%,100%{opacity:0; --sweep:360deg}
+  }
+
+  .verified{
+    position:absolute; top:-15px; right:18px; z-index:4;
+    display:flex; align-items:center; gap:6px;
+    background:linear-gradient(180deg,#22A75F,#15803D); color:#fff;
+    font-size:13px; font-weight:700; letter-spacing:.01em;
+    padding:8px 14px; border-radius:999px;
+    box-shadow:0 10px 22px -8px rgba(0,0,0,.5);
+    border:1px solid rgba(255,255,255,.4);
+    opacity:0; transform:translateY(6px) scale(.7);
+    animation:verifyPop var(--cycle) cubic-bezier(.2,1.5,.4,1) infinite;
+  }
+  @keyframes verifyPop{
+    0%,40%{opacity:0; transform:translateY(6px) scale(.7)}
+    45%{opacity:1; transform:translateY(0) scale(1)}
+    93%{opacity:1; transform:translateY(0) scale(1)}
+    99%,100%{opacity:0; transform:translateY(0) scale(.96)}
+  }
+  .verified svg{width:14px;height:14px;}
+
+  .head{display:flex; align-items:center; gap:11px; margin-bottom:14px;}
+  .pluschip{
+    width:34px;height:34px;border-radius:10px;flex:0 0 auto;
+    background:linear-gradient(180deg,#22A75F,#178A49);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 14px -6px rgba(21,128,61,.7);
+  }
+  .pluschip{position:relative;}
+  .pluschip::before,.pluschip::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%);}
+  .pluschip::before{width:16px;height:4px;}
+  .pluschip::after{width:4px;height:16px;}
+  .kicker{font-size:11px; font-weight:800; letter-spacing:.13em; color:var(--green-deep); line-height:1.5;}
+
+  .badges{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:700; padding:6px 11px; border-radius:999px; white-space:nowrap;
+    opacity:0; transform:translateY(6px);
+    animation:badgeIn var(--cycle) ease-out infinite;
+  }
+  .badge.gold{background:rgba(244,196,48,.16); color:#9a7400; border:1px solid rgba(244,196,48,.45);}
+  .badge.green{background:rgba(31,157,87,.12); color:var(--green-deep); border:1px solid rgba(31,157,87,.35); font-family:"Courier New",monospace; letter-spacing:.01em;}
+  .badge:nth-child(2){animation-delay:calc(var(--cycle) * .025);}
+  @keyframes badgeIn{
+    0%,10%{opacity:0; transform:translateY(6px)}
+    17%{opacity:1; transform:translateY(0)}
+    93%{opacity:1; transform:translateY(0)}
+    99%,100%{opacity:0; transform:translateY(0)}
+  }
+  .badge svg{width:12px;height:12px;}
+
+  .title{font-size:25px; font-weight:800; line-height:1.18; color:var(--navy); margin:2px 0 16px;}
+  .meta-lab{font-size:11px; font-weight:800; letter-spacing:.13em; color:var(--muted); margin-bottom:4px;}
+  .name{position:relative; font-size:19px; font-weight:800; color:var(--navy); display:inline-block;}
+  .name::after{content:""; position:absolute; left:0; right:0; bottom:1px; height:7px; background:rgba(244,196,48,.55); border-radius:4px; z-index:-1; transform:scaleX(0); transform-origin:left; animation:underline var(--cycle) ease-out infinite;}
+  @keyframes underline{0%,8%{transform:scaleX(0)}16%{transform:scaleX(1)}93%{transform:scaleX(1)}99%,100%{transform:scaleX(1)}}
+  .sub{font-size:13.5px; color:var(--muted); margin-top:9px;}
+  .divider{height:1px; background:var(--line); margin:18px 0 16px;}
+
+  .foot{display:flex; align-items:center; gap:16px;}
+  .qr{width:66px;height:66px;flex:0 0 auto;border-radius:8px;opacity:0;animation:qrReveal var(--cycle) ease-out infinite;}
+  @keyframes qrReveal{
+    0%,22%{opacity:0; filter:blur(7px) contrast(.5); transform:scale(.94)}
+    36%{opacity:1; filter:blur(0) contrast(1); transform:scale(1)}
+    93%{opacity:1; filter:blur(0) contrast(1); transform:scale(1)}
+    99%,100%{opacity:0; filter:blur(3px); transform:scale(.98)}
+  }
+  .foot-mid{flex:1; min-width:0; display:flex; flex-direction:column; gap:6px;}
+  .sig{height:30px;width:100%;}
+  .sig path{fill:none; stroke:var(--navy); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:240; stroke-dashoffset:240; animation:sign var(--cycle) ease-in-out infinite;}
+  @keyframes sign{0%,18%{stroke-dashoffset:240; opacity:.0}19%{opacity:1}30%{stroke-dashoffset:0; opacity:1}93%{stroke-dashoffset:0; opacity:1}99%,100%{stroke-dashoffset:0; opacity:0}}
+  .ausst{font-size:11px; color:var(--muted); line-height:1.5;}
+  .ausst b{display:block; color:var(--ink); font-size:13px; font-weight:700;}
+  .seal{
+    width:58px;height:58px;flex:0 0 auto;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #FFE07A, var(--gold) 60%, #D9A500);
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    color:var(--navy); font-size:9px; font-weight:800; line-height:1.15; letter-spacing:.02em;
+    box-shadow:0 8px 18px -6px rgba(217,165,0,.7), inset 0 0 0 2px rgba(255,255,255,.35);
+    opacity:0; transform:scale(.6) rotate(-12deg);
+    animation:sealPop var(--cycle) cubic-bezier(.2,1.5,.4,1) infinite;
+  }
+  @keyframes sealPop{0%,12%{opacity:0; transform:scale(.6) rotate(-12deg)}19%{opacity:1; transform:scale(1) rotate(0)}93%{opacity:1; transform:scale(1) rotate(0)}99%,100%{opacity:0; transform:scale(.96) rotate(0)}}
+
+  /* ---------- VALIDATION CONFIRMATION ---------- */
+  .validate{
+    display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; z-index:2;
+    font-size:13px; color:#5B6580; padding:2px 6px;
+    opacity:0; transform:translateY(8px);
+    animation:validateIn var(--cycle) ease-out infinite;
+  }
+  @keyframes validateIn{0%,46%{opacity:0; transform:translateY(8px)}54%{opacity:1; transform:translateY(0)}93%{opacity:1; transform:translateY(0)}99%,100%{opacity:0; transform:translateY(0)}}
+  .validate .vchk{display:inline-flex; align-items:center; gap:6px; color:#15803D; font-weight:700;}
+  .validate .vchk svg{width:14px;height:14px;}
+  .validate .sep{color:#B9C2D1;}
+  .validate .vurl{font-family:"Courier New",monospace; font-size:12px; color:#5B6580;}
+
+  @media (prefers-reduced-motion: reduce){
+    .card,.verified,.badge,.seal,.validate,.qr,.sig path,.name::after,.card .sweep{animation:none !important;}
+    .card,.verified,.badge,.seal,.validate,.qr{opacity:1 !important; transform:none !important;}
+    .sig path{stroke-dashoffset:0 !important;}
+    .name::after{transform:scaleX(1) !important;}
+    .card .sweep{opacity:0 !important;}
+  }
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="frame">
+      <div class="stage">
+        <div class="live"><span class="dot"></span> Live · Echtheitsprüfung</div>
+
+        <div class="cardwrap">
+          <div class="verified">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Verifiziert
+          </div>
+
+          <div class="card">
+            <div class="sweep"></div>
+
+            <div class="head">
+              <span class="pluschip"></span>
+              <span class="kicker">BESCHEINIGUNG<br>ERSTE-HILFE-AUSBILDUNG</span>
+            </div>
+
+            <div class="badges">
+              <span class="badge gold">
+                <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="#9a7400" stroke-width="2"/><path d="M8 11V8a4 4 0 018 0v3" stroke="#9a7400" stroke-width="2"/></svg>
+                Kryptografisch signiert
+              </span>
+              <span class="badge green">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#15803D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                DGUV 304-001 · eIDAS
+              </span>
+            </div>
+
+            <div class="title">Teilnahmebescheinigung<br>Erste Hilfe</div>
+
+            <div class="meta-lab">AUSGESTELLT FÜR</div>
+            <span class="name">Max Mustermann</span>
+            <div class="sub">Betriebliche Ersthelfer · 9 UE (9 × 45 Min.)</div>
+
+            <div class="divider"></div>
+
+            <div class="foot">
+              <canvas class="qr" width="132" height="132" aria-hidden="true"></canvas>
+              <div class="foot-mid">
+                <svg class="sig" viewBox="0 0 180 30" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M4 20 C 16 2, 24 2, 30 16 S 44 30, 52 16 S 66 4, 78 18 C 86 27, 96 24, 104 14 C 112 6, 124 6, 134 16 C 142 24, 156 22, 176 9"/>
+                </svg>
+                <div class="ausst">AUSSTELLER<b>Erste-Hilfe-Akademie</b></div>
+              </div>
+              <div class="seal">QSEH<br>geprüft</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="validate">
+          <span class="vchk"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#15803D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>Echtheit bestätigt</span>
+          <span class="sep">·</span>
+          <span class="vurl">erstehilfezertifikate.de/zertifikat-validierung</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  var CYCLE = 11000;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- responsive scaling of the 560x680 design ---- */
+  var wrap = document.getElementById('wrap');
+  var frame = document.getElementById('frame');
+  function fit(){
+    var s = Math.min(wrap.clientWidth / 560, 1);
+    frame.style.transform = 'scale(' + s + ')';
+    wrap.style.height = (520 * s) + 'px';
+  }
+  window.addEventListener('resize', fit); fit();
+
+  /* ---- stylised QR (decorative) ---- */
+  (function drawQR(){
+    var c = document.querySelector('.qr'); if(!c) return;
+    var ctx = c.getContext('2d'); var N = 25, m = c.width / N;
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.fillStyle = '#14254E';
+    // deterministic pseudo-random modules
+    var seed = 7;
+    function rnd(){ seed = (seed*1103515245 + 12345) & 0x7fffffff; return (seed>>16)/32768; }
+    for(var y=0;y<N;y++) for(var x=0;x<N;x++){
+      if(inFinder(x,y)) continue;
+      if(rnd() > .52) ctx.fillRect(x*m, y*m, m+.6, m+.6);
+    }
+    function inFinder(x,y){ return (x<8&&y<8)||(x>N-9&&y<8)||(x<8&&y>N-9); }
+    function finder(px,py){
+      ctx.fillRect(px*m,py*m,7*m,7*m);
+      ctx.clearRect((px+1)*m,(py+1)*m,5*m,5*m);
+      ctx.fillRect((px+2)*m,(py+2)*m,3*m,3*m);
+    }
+    finder(0,0); finder(N-7,0); finder(0,N-7);
+  })();
+})();
+</script>
+</body>
+</html>
